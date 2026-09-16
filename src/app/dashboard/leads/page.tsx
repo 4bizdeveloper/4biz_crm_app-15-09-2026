@@ -160,13 +160,22 @@ export default function LeadsModule() {
 
   const fetchData = async () => {
     setLoading(true);
-    const { data: leadsData } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false });
+    try {
+      const { data: leadsData, error } = await supabase
+        .from('leads')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-    if (leadsData) setLeads(leadsData);
-    setLoading(false);
+      if (error) {
+        console.error('Supabase fetch error:', error.message);
+      } else if (leadsData) {
+        setLeads(leadsData);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching leads:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -322,34 +331,42 @@ export default function LeadsModule() {
       city: formData.city,
     };
 
-    if (editingLead) {
-      const { data, error } = await supabase
-        .from('leads')
-        .update(payload)
-        .eq('id', editingLead.id)
-        .select();
+    try {
+      if (editingLead) {
+        const { data, error } = await supabase
+          .from('leads')
+          .update(payload)
+          .eq('id', editingLead.id)
+          .select();
 
-      if (error) {
-        alert(`Could not update lead: ${error.message}`);
-        return;
-      }
+        if (error) {
+          alert(`Could not update lead: ${error.message}`);
+          return;
+        }
 
-      if (data && data.length > 0) {
-        setLeads(leads.map((l) => (l.id === editingLead.id ? data[0] : l)));
-        closeModal();
-      }
-    } else {
-      const { data, error } = await supabase.from('leads').insert([payload]).select();
+        if (data && data.length > 0) {
+          setLeads(leads.map((l) => (l.id === editingLead.id ? data[0] : l)));
+          closeModal();
+        }
+      } else {
+        const { data, error } = await supabase
+          .from('leads')
+          .insert([payload])
+          .select();
 
-      if (error) {
-        alert(`Could not save lead: ${error.message}`);
-        return;
-      }
+        if (error) {
+          alert(`Could not save lead: ${error.message}`);
+          return;
+        }
 
-      if (data && data.length > 0) {
-        setLeads([data[0], ...leads]);
-        closeModal();
+        if (data && data.length > 0) {
+          setLeads([data[0], ...leads]);
+          closeModal();
+        }
       }
+    } catch (err) {
+      console.error('Error saving lead:', err);
+      alert('An unexpected error occurred while saving the lead.');
     }
   };
 
@@ -426,22 +443,30 @@ export default function LeadsModule() {
   };
 
   const updateLeadStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from('leads').update({ status }).eq('id', id);
-    if (error) {
-      alert(`Status update failed: ${error.message}`);
-      return;
+    try {
+      const { error } = await supabase.from('leads').update({ status }).eq('id', id);
+      if (error) {
+        alert(`Status update failed: ${error.message}`);
+        return;
+      }
+      setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
+    } catch (err) {
+      console.error('Error updating status:', err);
     }
-    setLeads(leads.map((l) => (l.id === id ? { ...l, status } : l)));
   };
 
   const deleteLead = async (id: string) => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
-    const { error } = await supabase.from('leads').delete().eq('id', id);
-    if (error) {
-      alert(`Delete failed: ${error.message}`);
-      return;
+    try {
+      const { error } = await supabase.from('leads').delete().eq('id', id);
+      if (error) {
+        alert(`Delete failed: ${error.message}`);
+        return;
+      }
+      setLeads(leads.filter((l) => l.id !== id));
+    } catch (err) {
+      console.error('Error deleting lead:', err);
     }
-    setLeads(leads.filter((l) => l.id !== id));
   };
 
   const exportCSV = () => {
