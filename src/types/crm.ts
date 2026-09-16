@@ -1,3 +1,11 @@
+// Roles exported as both a TypeScript type and a runtime Enum/Object
+export enum Role {
+  ADMIN = 'ADMIN',
+  USER = 'USER',
+  EMPLOYEE = 'EMPLOYEE',
+  MANAGER = 'MANAGER',
+}
+
 export interface Lead {
   id: string;
   name: string;
