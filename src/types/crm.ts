@@ -6,6 +6,8 @@ export enum Role {
   MANAGER = 'MANAGER',
 }
 
+export type RoleType = Role;
+
 export interface Lead {
   id: string;
   name: string;
